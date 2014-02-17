@@ -83,7 +83,7 @@ describe "Service Instance Management", type: :integration do
     update_user_provided_service_instance
     
     expect((check_app @application_guid).code).to eq("200") 
-    expect("CF-AssociationNotEmpty").to include(JSON.parse((delete_app @application_guid).body)["error_code"])
+    expect(JSON.parse((delete_app @application_guid).body)["error_code"]).to eq("CF-AssociationNotEmpty")
 
     unbind_service_instance
     expect((delete_app @application_guid).code).to eq("204") 
