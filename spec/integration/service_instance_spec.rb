@@ -76,6 +76,33 @@ describe "Service Instance Management", type: :integration do
     verify_updated_service_binding
   end
 
+  it "should delete binding before deleting app" do
+    create_user_provided_service_instance
+    create_application
+    bind_user_provided_service_instance
+    update_user_provided_service_instance
+    
+    expect((check_app @application_guid).code).to eq("200") 
+    expect("CF-AssociationNotEmpty").to include(JSON.parse((delete_app @application_guid).body)["error_code"])
+
+    unbind_service_instance
+    expect((delete_app @application_guid).code).to eq("204") 
+  end
+  
+  def delete_app guid
+    @app_delete_response = make_delete_request(
+      "/v2/apps/"+guid,
+      authed_headers
+    )      
+  end
+  
+  def check_app guid
+    @app_check_response = make_get_request(
+      "/v2/apps/"+guid,
+      authed_headers
+    )      
+  end
+    
   def counts_from_fake_service_broker
     http = Net::HTTP.new('localhost', 54329)
     request = Net::HTTP::Get.new('/counts')
