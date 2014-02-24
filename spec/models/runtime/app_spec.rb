@@ -664,6 +664,26 @@ module VCAP::CloudController
           end
         end
 
+        context "when app is started" do
+          it "the app usage events should contain buildpack" do
+            app = AppFactory.make(:buildpack => "git://user@github.com:repo")
+            expect {
+              app.update(state: "STARTED")
+            }.to change {AppUsageEvent.count}.by(1)
+            event = AppUsageEvent.last
+            expect(event.app_buildpack).to eq("git://user@github.com:repo")
+          end
+
+          it "the app usage events should contain detected buildpack" do
+            app = AppFactory.make(:detected_buildpack => "buildpack-name")
+            expect {
+              app.update(state: "STARTED")
+            }.to change {AppUsageEvent.count}.by(1)
+            event = AppUsageEvent.last
+            expect(event.app_detected_buildpack).to eq("buildpack-name")                    
+          end
+        end          
+
         it "does not allow a non-url string" do
           expect {
             app = AppFactory.make(buildpack: "Hello, world!")

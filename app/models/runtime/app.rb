@@ -167,6 +167,8 @@ module VCAP::CloudController
                            org_guid: space.organization_guid,
                            space_guid: space_guid,
                            space_name: space.name,
+                           app_buildpack: buildpack,
+                           app_detected_buildpack: detected_buildpack,
       )
     end
 

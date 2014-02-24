@@ -269,5 +269,7 @@ module VCAP::CloudController
     org_guid { Sham.guid }
     space_guid { Sham.guid }
     space_name { Sham.name }
+    app_buildpack { Sham.name }
+    app_detected_buildpack { Sham.name }
   end
 end

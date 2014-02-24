@@ -9,6 +9,8 @@ module VCAP::CloudController
         instance_count: 1,
         app_guid: 'app-guid',
         app_name: 'app-name',
+        app_buildpack: 'app-buildpack',
+        app_detected_buildpack: 'app-detected-buildpack',
         space_guid: 'space-guid',
         space_name: 'space-name',
         org_guid: 'org-guid'
@@ -39,7 +41,27 @@ module VCAP::CloudController
         expect(json_hash.fetch('space_guid')).to eq(event.space_guid)
         expect(json_hash.fetch('space_name')).to eq(event.space_name)
         expect(json_hash.fetch('org_guid')).to eq(event.org_guid)
+        expect(json_hash.fetch('app_buildpack')).to eq(event.app_buildpack)
+        expect(json_hash.fetch('app_detected_buildpack')).to eq(event.app_detected_buildpack)
       end
+      
+      it "should marshall old format event" do
+        old_event = AppUsageEvent.new("state" => "STARTED", "instance_count" => "1", "memory_in_mb_per_instance" => "564", 
+          "app_guid" => Sham.guid, "app_name" => Sham.name, "org_guid" => Sham.guid, "space_guid" => Sham.guid, "space_name" => Sham.name)
+        old_event.save
+        event = AppUsageEvent.all.first
+        json_hash = Yajl::Parser.parse(event.to_json)
+        expect(json_hash.fetch('state')).to eq(event.state)
+        expect(json_hash.fetch('memory_in_mb_per_instance')).to eq(event.memory_in_mb_per_instance)
+        expect(json_hash.fetch('instance_count')).to eq(event.instance_count)
+        expect(json_hash.fetch('app_guid')).to eq(event.app_guid)
+        expect(json_hash.fetch('app_name')).to eq(event.app_name)
+        expect(json_hash.fetch('space_guid')).to eq(event.space_guid)
+        expect(json_hash.fetch('space_name')).to eq(event.space_name)
+        expect(json_hash.fetch('org_guid')).to eq(event.org_guid)
+        expect(json_hash.fetch('app_buildpack')).to eq(event.app_buildpack)
+        expect(json_hash.fetch('app_detected_buildpack')).to eq(event.app_detected_buildpack)
+      end        
     end
   end
 end

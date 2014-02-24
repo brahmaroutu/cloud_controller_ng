@@ -14,6 +14,18 @@ module VCAP::CloudController
         expect(decoded_response.fetch("resources").first.fetch("entity")).to have_at_least(1).item
       end
 
+      it "the event should contain app buildpack" do
+        get "/v2/app_usage_events", {}, admin_headers
+        expect(last_response).to be_successful
+        expect(decoded_response.fetch("resources").first.fetch("entity").fetch("app_buildpack")).not_to be_nil
+      end
+
+      it "the event should contain app detected buildpack" do
+        get "/v2/app_usage_events", {}, admin_headers
+        expect(last_response).to be_successful
+        expect(decoded_response.fetch("resources").first.fetch("entity").fetch("app_detected_buildpack")).not_to be_nil
+      end
+
       context "when filtering by after_guid" do
         before do
           @event2 = AppUsageEvent.make
