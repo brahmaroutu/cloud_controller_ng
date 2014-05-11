@@ -114,7 +114,7 @@ loggregator:
 <% db = p("ccdb_ng.databases").find { |db| db["tag"] == "cc" } %>
 <% db_role = p("ccdb_ng.roles").find { |role| role["tag"] == "admin" } %>
 db: &db
-  database: <%= p("ccdb_ng.db_scheme") == "mysql" ? "mysql2" : p("ccdb_ng.db_scheme") %>://<%= db_role["name"] %>:<%= db_role["password"] %>@<%= p("ccdb_ng.address") %>:<%= p("ccdb_ng.port") %>/<%= db["name"] %>
+  database: <%= p("ccdb_ng.db_scheme") == "mysql" ? "mysql2" : p("ccdb_ng.db_scheme") %>://<%= db_role["credentials"].first["name"] %>:<%= db_role["credentials"].first["password"] %>@<%= p("ccdb_ng.address") %>:<%= p("ccdb_ng.port") %>/<%= db["name"] %>
   max_connections: <%= p("ccdb_ng.max_connections") %>
   pool_timeout: <%= p("ccdb_ng.pool_timeout") %>
   log_level: <%= p("ccng.db_logging_level") %>
