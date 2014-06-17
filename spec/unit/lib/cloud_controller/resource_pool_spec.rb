@@ -23,6 +23,11 @@ module VCAP::CloudController
         res = @resource_pool.match_resources(@descriptors + [@dummy_descriptor])
         res.should == @descriptors
       end
+      
+      it "should find latest resources in cache" do
+        res = @resource_pool.match_resources(@descriptors + [@dummy_descriptor])
+        @descriptors.count == @resource_pool.cache.count
+      end
     end
 
     describe "#resource_sizes" do

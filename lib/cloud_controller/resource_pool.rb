@@ -10,7 +10,7 @@ require "steno"
 
 class VCAP::CloudController::ResourcePool
   attr_accessor :minimum_size, :maximum_size
-  attr_reader :blobstore
+  attr_reader :blobstore, :cache
 
   class << self
     attr_accessor :instance
@@ -27,6 +27,8 @@ class VCAP::CloudController::ResourcePool
 
     @minimum_size = options[:minimum_size] || 0
     @maximum_size = options[:maximum_size] || 512 * 1024 * 1024 # MB
+    
+    @cache = LruCache.new(10000)
   end
 
   def match_resources(descriptors)
@@ -38,7 +40,7 @@ class VCAP::CloudController::ResourcePool
     unless File.exists?(dir) && File.directory?(dir)
       raise ArgumentError, "Source directory #{dir} is not valid"
     end
-
+    
     pattern = File.join(dir, "**", "*")
     files = Dir.glob(pattern, File::FNM_DOTMATCH).select do |f|
       resource_allowed?(f)
@@ -60,6 +62,7 @@ class VCAP::CloudController::ResourcePool
         :body   => file,
         :public => false,
       )
+      @cache[sha1] = {"sha1"=>key,"size"=>file.size()} 
     end
   end
 
@@ -96,7 +99,12 @@ class VCAP::CloudController::ResourcePool
     size = descriptor["size"]
     if size_allowed?(size)
       key = key_from_sha1(descriptor["sha1"])
-      blobstore.files.head(key)
+      ckey = descriptor["sha1"]
+      if !@cache[ckey].nil?
+        @cache[ckey]
+      else
+        blobstore.files.head(key)
+      end 
     end
   end
 
@@ -148,5 +156,97 @@ class VCAP::CloudController::ResourcePool
   def key_from_sha1(sha1)
     sha1 = sha1.to_s.downcase
     File.join(sha1[0..1], sha1[2..3], sha1)
+  end
+end
+
+
+class LruCache
+  def initialize(max_size)
+    @max_size = max_size
+    @data = {}
+  end
+
+  def max_size=(size)
+    raise ArgumentError.new(:max_size) if @max_size < 1
+    @max_size = size
+    if @max_size < @data.size
+      @data.keys[0..@max_size-@data.size].each do |k|
+        @data.delete(k)
+      end
+    end
+  end
+
+  def getset(key)
+    found = true
+    value = @data.delete(key){ found = false }
+    if found
+      @data[key] = value
+    else
+      result = @data[key] = yield
+      # this may seem odd see: http://bugs.ruby-lang.org/issues/8312
+      @data.delete(@data.first[0]) if @data.length > @max_size
+      result
+    end
+  end
+
+  def fetch(key)
+    found = true
+    value = @data.delete(key){ found = false }
+    if found
+      @data[key] = value
+    else
+      yield if block_given?
+    end
+  end
+
+  def [](key)
+    found = true
+    value = @data.delete(key){ found = false }
+    if found
+      @data[key] = value
+    else
+      nil
+    end
+  end
+
+  def []=(key,val)
+    @data.delete(key)
+    @data[key] = val
+    # this may seem odd see: http://bugs.ruby-lang.org/issues/8312
+    @data.delete(@data.first[0]) if @data.length > @max_size
+    val
+  end
+
+  def each
+    array = @data.to_a
+    array.reverse!.each do |pair|
+      yield pair
+    end
+  end
+
+  # used further up the chain, non thread safe each
+  alias_method :each_unsafe, :each
+
+  def to_a
+    array = @data.to_a
+    array.reverse!
+  end
+
+  def delete(k)
+    @data.delete(k)
+  end
+
+  def clear
+    @data.clear
+  end
+
+  def count
+    @data.count
+  end
+
+
+  # for cache validation only, ensures all is sound
+  def valid?
+    true
   end
 end
